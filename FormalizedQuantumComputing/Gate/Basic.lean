@@ -7,6 +7,10 @@ Authors: Haruna Imai
 import FormalizedQuantumComputing.Gate.Defs
 import FormalizedQuantumComputing.Gate.Pauli.Defs
 import FormalizedQuantumComputing.StateVector.Defs
+import Mathlib.Analysis.InnerProductSpace.Defs
+import Mathlib.Analysis.InnerProductSpace.Adjoint
+import Mathlib.Data.Matrix.Mul
+import Mathlib.LinearAlgebra.Matrix.ConjTranspose
 
 /-!
 # Basic properties of quantum gates
@@ -71,5 +75,55 @@ theorem CNOT_mul_CNOT_eq_id : CNOT * CNOT = 1 := by
   simp
   simpa [add_assoc, add_comm, add_left_comm]
    using Matrix.computationalBasis_two_qubit_outerproduct_sum
+
+variable (n : ℕ)
+variable (U : Gate.QuantumGate n) (ψ : StateVector.State n)
+
+-- U^* (U ψ) = ψ
+/-- Applying the adjoint of a quantum gate after the gate itself
+returns the original state. -/
+lemma adjoint_apply_apply :
+    Matrix.toEuclideanLin
+        (Matrix.conjTranspose
+          (U : Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ))
+        (Gate.apply U ψ)
+      = ψ := by
+  rw [Matrix.toLpLin_apply]
+  rw [Gate.apply]
+  rw [Matrix.mulVec_mulVec]
+  rw [← Matrix.star_eq_conjTranspose
+    (U : Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ)]
+  rw [U.property.1]
+  simp
+
+-- <Uψ, Uψ> = <ψ, ψ>
+/-- A quantum gate preserves the self-inner product of a state. -/
+lemma gate_preserves_self_inner :
+    inner ℂ (Gate.apply U ψ) (Gate.apply U ψ) =
+      inner ℂ ψ ψ := by
+  -- <Uψ, Uψ> = <ψ, U^* (U ψ)>
+  have h1 : inner ℂ (Gate.apply U ψ) (Gate.apply U ψ) =
+    inner ℂ ψ
+      (Matrix.toEuclideanLin
+        (Matrix.conjTranspose
+          (U : Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ))
+            (Gate.apply U ψ)) := by
+    rw [Matrix.toEuclideanLin_conjTranspose_eq_adjoint
+      (U : Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ)]
+    rw [LinearMap.adjoint_inner_right]
+    rfl
+  rw [h1]
+  rw [adjoint_apply_apply]
+
+-- U:Unitary → ||Uψ|| = ||ψ||
+/-- A quantum gate preserves the norm of a state vector. -/
+theorem gate_preserves_norm : ‖Gate.apply U ψ‖ = ‖ψ‖ := by
+  have hUψ :=
+    norm_sq_eq_re_inner (𝕜 := ℂ) (Gate.apply U ψ)
+  have hψ :=
+    norm_sq_eq_re_inner (𝕜 := ℂ) ψ
+  apply (sq_eq_sq₀ (norm_nonneg _) (norm_nonneg _)).mp
+  rw [hUψ, hψ]
+  rw [gate_preserves_self_inner]
 
 end Gate

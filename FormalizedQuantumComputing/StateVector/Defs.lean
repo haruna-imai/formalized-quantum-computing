@@ -8,6 +8,7 @@ import Mathlib.LinearAlgebra.Matrix.Notation
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.LinearAlgebra.Matrix.Kronecker
 import Mathlib.LinearAlgebra.Matrix.Reindex
+import Mathlib.Analysis.InnerProductSpace.PiL2
 
 /-!
 # State vectors
@@ -18,6 +19,15 @@ This file provides basic definitions and properties of state vectors for quantum
 namespace StateVector
 open Kronecker
 open scoped Matrix
+
+-- 正規化を仮定しない状態ベクトル
+abbrev State (n : ℕ) :=
+  EuclideanSpace ℂ (Fin n → Fin 2)
+
+-- 正規化済みの状態ベクトル
+structure NormalizedState (n : ℕ) where
+  vec : State n
+  normalized : ‖vec‖ = 1
 
 -- |0> を定義
 def ket0 : Matrix (Fin 2) (Fin 1) ℂ := !![1 ; 0]
