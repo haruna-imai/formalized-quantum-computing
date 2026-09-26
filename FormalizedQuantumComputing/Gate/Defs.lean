@@ -9,6 +9,7 @@ import Mathlib.Analysis.Complex.Basic
 import Mathlib.LinearAlgebra.Matrix.Kronecker
 import Mathlib.LinearAlgebra.Matrix.Reindex
 import FormalizedQuantumComputing.StateVector.Defs
+import Mathlib.LinearAlgebra.UnitaryGroup
 
 /-!
 # quantum gates
@@ -20,6 +21,16 @@ namespace Gate
 open Kronecker
 open StateVector
 open scoped Matrix
+
+variable (n : ℕ)
+
+-- 量子Gateの定義
+abbrev QuantumGate := Matrix.unitaryGroup (Fin n → Fin 2) ℂ
+
+/-- Applies a quantum gate to a state vector. -/
+def apply {n : ℕ} (U : Gate.QuantumGate n) (ψ : StateVector.State n) :
+  StateVector.State n
+  := WithLp.toLp 2 (U *ᵥ ψ.ofLp)
 
 -- Hadamardの定義
 noncomputable def H : Matrix (Fin 2) (Fin 2) ℂ := !![1/√2, 1/√2; 1/√2, -1/√2]

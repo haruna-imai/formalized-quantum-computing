@@ -24,6 +24,7 @@ The library currently includes:
 - CNOT gate
 - Basic identities for quantum gates, such as `H² = I` and `CNOT² = I`
 - Bell-state calculations
+- Quantum gates are represented as unitary matrices and preserve the norm of state vectors
 
 ## Requirements
 
