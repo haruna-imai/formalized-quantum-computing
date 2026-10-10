@@ -23,19 +23,28 @@ open Pauli
 open StateVector
 open Kronecker
 
--- H^2 = I
-theorem H_mul_H_eq_id : H * H = 1 := by
-  have hsqrt : (Real.sqrt 2) ^ 2 = (2 : ℝ) := by
-    rw [Real.sq_sqrt]
-    norm_num
-  ext i j
-  fin_cases i <;> fin_cases j <;>
-    simp [H, Matrix.mul_apply] <;>
-    field_simp <;>
-    norm_cast <;>
-    rw [hsqrt] <;>
-    norm_num
+/-- The Hadamard matrix is self-adjoint -/
+theorem HMatrix_self_adjoint :
+  star HMatrix = HMatrix := by
+    unfold HMatrix
+    rw [star_smul]
+    simp_rw [star_sub, star_add]
+    simp_rw [StateVector.star_outer]
+    have hc :
+    star (1 / (↑(Real.sqrt 2) : ℂ)) =
+      (1 / (↑(Real.sqrt 2) : ℂ)) := by
+      simp only [Complex.star_def, map_div₀, map_one, Complex.conj_ofReal]
+    rw [hc]
+    module
 
+/-- H² = 1. -/
+theorem H_mul_H_eq_id : H * H = 1 := by
+  apply Subtype.ext
+  change (HMatrix * HMatrix = 1)
+  nth_rewrite 1 [← HMatrix_self_adjoint]
+  exact star_mul_HMatrix
+
+/-
 -- HXH = Z
 theorem H_mul_X_mul_H_eq_Z : H * X * H = Z := by
   -- 実数上で√2 ^ 2 = 2を補題として証明
@@ -63,8 +72,9 @@ theorem H_mul_Z_mul_H_eq_X : H * Z * H = X :=by
   rw[H_mul_H_eq_id]
   rw[Matrix.one_mul]
   rw[Matrix.mul_one]
+-/
 
-/- The CNOT matrix is self-adjoint --/
+/-- The CNOT matrix is self-adjoint -/
 theorem CNOTMatrix_self_adjoint :
   star CNOTMatrix = CNOTMatrix := by
     unfold CNOTMatrix
@@ -72,7 +82,7 @@ theorem CNOTMatrix_self_adjoint :
     simp_rw [StateVector.star_outer]
     abel
 
-/- CNOT^2 = 1 --/
+/-- CNOT^2 = 1 -/
 theorem CNOT_mul_CNOT_eq_id : CNOT * CNOT = 1 := by
   apply Subtype.ext
   change (CNOTMatrix * CNOTMatrix = 1)

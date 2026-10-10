@@ -141,6 +141,26 @@ lemma fin_two_eq_zero_or_one (x : Fin 2) :
     x = 0 ∨ x = 1 := by
   fin_cases x <;> simp
 
+lemma fin_one_fun_eq_iff (i j : Fin 1 → Fin 2) :
+    i = j ↔ i 0 = j 0 := by
+  constructor
+  · intro h
+    rw [h]
+  · intro h
+    funext k
+    have hk : k = 0 := Subsingleton.elim k 0
+    subst k
+    exact h
+
+/- |0⟩⟨0| + |1⟩⟨1| = 1 --/
+theorem computationalBasis_one_qubit_outerproduct_sum :
+    outer ket0 ket0 + outer ket1 ket1  = 1 := by
+  ext i j
+  simp only [Matrix.add_apply, Matrix.one_apply, outer, ket0, ket1, fin_one_fun_eq_iff]
+  rcases fin_two_eq_zero_or_one (i 0) with hi0 | hi0 <;>
+  rcases fin_two_eq_zero_or_one (j 0) with hj0 | hj0 <;>
+  simp [ket, hi0, hj0]
+
 /-- Two functions from `Fin 2` are equal if and only if they agree at `0` and `1`. -/
 lemma fin_two_fun_eq_iff (i j : Fin (1 + 1) → Fin 2) :
     i = j ↔ i 0 = j 0 ∧ i 1 = j 1 := by
