@@ -64,17 +64,20 @@ theorem H_mul_Z_mul_H_eq_X : H * Z * H = X :=by
   rw[Matrix.one_mul]
   rw[Matrix.mul_one]
 
--- CNOT^2 = I
--- CNOT = |00><00| + |01><01| + |11><10| +|10><11|
+/- The CNOT matrix is self-adjoint --/
+theorem CNOTMatrix_self_adjoint :
+  star CNOTMatrix = CNOTMatrix := by
+    unfold CNOTMatrix
+    simp_rw [star_add]
+    simp_rw [StateVector.star_outer]
+    abel
+
+/- CNOT^2 = 1 --/
 theorem CNOT_mul_CNOT_eq_id : CNOT * CNOT = 1 := by
-  rw [CNOT]
-  simp_rw [Matrix.add_mul, Matrix.mul_add]
-  simp_rw [Matrix.outerproduct_mul_outerproduct]
-  simp_rw [Matrix.kronecker_conjTranspose_mul_kronecker]
-  simp_rw [ket0star_mul_ket0, ket1star_mul_ket0, ket0star_mul_ket1, ket1star_mul_ket1]
-  simp
-  simpa [add_assoc, add_comm, add_left_comm]
-   using Matrix.computationalBasis_two_qubit_outerproduct_sum
+  apply Subtype.ext
+  change (CNOTMatrix * CNOTMatrix = 1)
+  nth_rewrite 1 [← CNOTMatrix_self_adjoint]
+  exact star_mul_CNOTMatrix
 
 variable (n : ℕ)
 variable (U : Gate.QuantumGate n) (ψ : StateVector.State n)
@@ -90,6 +93,7 @@ lemma adjoint_apply_apply :
       = ψ := by
   rw [Matrix.toLpLin_apply]
   rw [Gate.apply]
+  unfold StateVector.applyMatrix
   rw [Matrix.mulVec_mulVec]
   rw [← Matrix.star_eq_conjTranspose
     (U : Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ)]
