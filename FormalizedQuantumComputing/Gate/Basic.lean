@@ -15,7 +15,7 @@ import Mathlib.LinearAlgebra.Matrix.ConjTranspose
 /-!
 # Basic properties of quantum gates
 
-This file proves basic properties of quantum Gates.
+This file proves basic properties of quantum gates.
 -/
 
 namespace Gate
@@ -23,7 +23,7 @@ open Pauli
 open StateVector
 open Kronecker
 
-/-- The Hadamard matrix is self-adjoint -/
+/-- The Hadamard matrix is self-adjoint. -/
 theorem HMatrix_self_adjoint :
   star HMatrix = HMatrix := by
     unfold HMatrix
@@ -37,44 +37,38 @@ theorem HMatrix_self_adjoint :
     rw [hc]
     module
 
-/-- H² = 1. -/
+/-- Applying the Hadamard gate twice gives the identity. -/
 theorem H_mul_H_eq_id : H * H = 1 := by
   apply Subtype.ext
   change (HMatrix * HMatrix = 1)
   nth_rewrite 1 [← HMatrix_self_adjoint]
   exact star_mul_HMatrix
 
-/-
--- HXH = Z
+/-- Conjugating the Pauli X gate by the Hadamard gate gives the Pauli Z gate. -/
 theorem H_mul_X_mul_H_eq_Z : H * X * H = Z := by
-  -- 実数上で√2 ^ 2 = 2を補題として証明
-  have hsqrt : √2 ^ 2 = 2 :=by
-    apply Real.sq_sqrt
-    linarith
-  -- 行列の要素の比較をすることで等式証明を行う
-  ext i j
-  simp_rw [Matrix.mul_apply]
-  fin_cases i <;>
-  fin_cases j <;>
-  simp [H, X, Z] <;>
-  field_simp <;>
-  norm_num <;>
-  norm_cast <;>
-  rw[hsqrt]
+  apply Subtype.ext
+  change (HMatrix * XMatrix * HMatrix = ZMatrix)
+  rw [HMatrix, XMatrix, ZMatrix]
+  simp_rw [Matrix.smul_mul, Matrix.mul_smul, smul_smul]
+  rw [hadamard_coefficient_mul_self]
+  simp_rw [Matrix.sub_mul, Matrix.add_mul,
+    Matrix.mul_sub, Matrix.mul_add]
+  simp only [StateVector.outer_mul_outer,
+    inner_ket0_ket0, inner_ket0_ket1,
+    inner_ket1_ket0, inner_ket1_ket1,
+    one_smul, zero_smul, add_zero, zero_add, sub_zero, one_div]
+  module
 
--- HZH = X
+/-- Conjugating the Pauli Z gate by the Hadamard gate gives the Pauli X gate. -/
 theorem H_mul_Z_mul_H_eq_X : H * Z * H = X :=by
-  -- H * (H * X * H) * H = (H * H) * X * (H * H)
-  have h: H * (H * X * H) * H = (H * H) * X * (H * H) :=  by
-    simp_rw[Matrix.mul_assoc]
+  have h: H * (H * X * H) * H = (H * H) * X * (H * H) := by
+    simp_rw [mul_assoc]
   rw[← H_mul_X_mul_H_eq_Z]
   rw[h]
   rw[H_mul_H_eq_id]
-  rw[Matrix.one_mul]
-  rw[Matrix.mul_one]
--/
+  rw[one_mul, mul_one]
 
-/-- The CNOT matrix is self-adjoint -/
+/-- The CNOT matrix is self-adjoint. -/
 theorem CNOTMatrix_self_adjoint :
   star CNOTMatrix = CNOTMatrix := by
     unfold CNOTMatrix
@@ -82,7 +76,7 @@ theorem CNOTMatrix_self_adjoint :
     simp_rw [StateVector.star_outer]
     abel
 
-/-- CNOT^2 = 1 -/
+/-- Applying the CNOT gate twice gives the identity. -/
 theorem CNOT_mul_CNOT_eq_id : CNOT * CNOT = 1 := by
   apply Subtype.ext
   change (CNOTMatrix * CNOTMatrix = 1)
@@ -92,9 +86,9 @@ theorem CNOT_mul_CNOT_eq_id : CNOT * CNOT = 1 := by
 variable (n : ℕ)
 variable (U : Gate.QuantumGate n) (ψ : StateVector.State n)
 
--- U^* (U ψ) = ψ
 /-- Applying the adjoint of a quantum gate after the gate itself
-returns the original state. -/
+returns the original state.
+`U^* (U ψ) = ψ`. -/
 lemma adjoint_apply_apply :
     Matrix.toEuclideanLin
         (Matrix.conjTranspose
@@ -110,8 +104,8 @@ lemma adjoint_apply_apply :
   rw [U.property.1]
   simp
 
--- <Uψ, Uψ> = <ψ, ψ>
-/-- A quantum gate preserves the self-inner product of a state. -/
+/-- A quantum gate preserves the self-inner product of a state.
+`<Uψ, Uψ> = <ψ, ψ>`. -/
 lemma gate_preserves_self_inner :
     inner ℂ (Gate.apply U ψ) (Gate.apply U ψ) =
       inner ℂ ψ ψ := by
@@ -129,8 +123,8 @@ lemma gate_preserves_self_inner :
   rw [h1]
   rw [adjoint_apply_apply]
 
--- U:Unitary → ||Uψ|| = ||ψ||
-/-- A quantum gate preserves the norm of a state vector. -/
+/-- A quantum gate preserves the norm of a state vector.
+`U:Unitary → ||Uψ|| = ||ψ||`. -/
 theorem gate_preserves_norm : ‖Gate.apply U ψ‖ = ‖ψ‖ := by
   have hUψ :=
     norm_sq_eq_re_inner (𝕜 := ℂ) (Gate.apply U ψ)

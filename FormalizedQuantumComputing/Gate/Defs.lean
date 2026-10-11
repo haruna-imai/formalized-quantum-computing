@@ -42,6 +42,17 @@ noncomputable def HMatrix :
      outer ket0 ket1 -
      outer ket1 ket1)
 
+/-- The square of the Hadamard normalization coefficient is one half. -/
+lemma hadamard_coefficient_mul_self :
+    (1 / (↑(Real.sqrt 2) : ℂ)) *
+      (1 / (↑(Real.sqrt 2) : ℂ)) = (1 / 2 : ℂ) := by
+  have hsqrt : (Real.sqrt 2) ^ 2 = (2 : ℝ) :=
+    Real.sq_sqrt (by norm_num)
+  have hsqrtC : (↑(Real.sqrt 2) : ℂ) ^ 2 = (2 : ℂ) := by
+    exact_mod_cast hsqrt
+  rw [div_mul_div_comm, one_mul,
+      ← pow_two (↑(Real.sqrt 2) : ℂ), hsqrtC]
+
 /-- The squared norm of the normalization coefficient of the Hadamard matrix. -/
 lemma hadamard_coefficient_norm_sq :
     star (1 / (↑(Real.sqrt 2) : ℂ)) *
