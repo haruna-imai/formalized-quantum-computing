@@ -9,14 +9,79 @@ import FormalizedQuantumComputing.StateVector.Defs
 /-!
 # Basic properties of state vectors
 
-This file proves basic properties of state vectors and includes calculations involving
-Bell states.
+This file proves orthonormality of computational basis states, properties of tensor
+products, matrix application and outer products, and completeness of computational bases.
 -/
 
 namespace StateVector
 
 open Kronecker
 open scoped Matrix
+
+/-! ## Computational basis states -/
+
+/-- `⟨i|i⟩ = 1`. -/
+theorem inner_ket_self (i : Fin 2) : inner ℂ (ket i) (ket i) = 1 := by
+  unfold ket
+  rw [PiLp.inner_apply]
+  simp only [Fin.isValue, inner_self_eq_norm_sq_to_K, Complex.coe_algebraMap]
+  rw [Fintype.sum_eq_single (a := fun _ : Fin 1 => (i : Fin 2))]
+  · simp
+  · intro x hx
+    simp only [Fin.isValue, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true,
+      pow_eq_zero_iff, Complex.ofReal_eq_zero, norm_eq_zero, ite_eq_right_iff,
+      one_ne_zero, imp_false]
+    intro h
+    apply hx
+    funext i
+    fin_cases i
+    exact h
+
+/-- `⟨i|j⟩ = 0` if i ≠ j. -/
+theorem inner_ket_of_ne {i j : Fin 2} (h : i ≠ j) :
+    inner ℂ (ket i) (ket j) = 0 := by
+    unfold ket
+    rw [PiLp.inner_apply]
+    simp only [Fin.isValue, RCLike.inner_apply, MonoidWithZeroHom.map_ite_one_zero, mul_ite,
+      mul_one, mul_zero]
+    apply Finset.sum_eq_zero
+    simp only [Finset.mem_univ, Fin.isValue, ite_eq_right_iff, one_ne_zero,
+      imp_false, forall_const]
+    intro x x0i x0j
+    rw [x0i] at x0j
+    exact h x0j
+
+/-- Computational basis states are orthonormal. -/
+theorem inner_ket (i j : Fin 2) :
+    inner ℂ (ket i) (ket j) = if i = j then 1 else 0 := by
+  by_cases h : i = j
+  · subst i
+    rw [ite_eq_left rfl]
+    exact inner_ket_self j
+  · rw [ite_eq_right h]
+    exact inner_ket_of_ne h
+
+/-- `⟨0|0⟩ = 1`. -/
+theorem inner_ket0_ket0 : inner ℂ ket0 ket0 = (1 : ℂ) := by
+  unfold ket0
+  exact inner_ket 0 0
+
+/-- `⟨0|1⟩ = 0`. -/
+theorem inner_ket0_ket1 : inner ℂ ket0 ket1 = (0 : ℂ) := by
+  unfold ket0 ket1
+  exact inner_ket 0 1
+
+/-- `⟨1|0⟩ = 0`. -/
+theorem inner_ket1_ket0 : inner ℂ ket1 ket0 = (0 : ℂ) := by
+  unfold ket0 ket1
+  exact inner_ket 1 0
+
+/-- `⟨1|1⟩ = 1`. -/
+theorem inner_ket1_ket1 : inner ℂ ket1 ket1 = (1 : ℂ) := by
+  unfold ket1
+  exact inner_ket 1 1
+
+/-! ## Tensor products -/
 
 /-- The tensor product is additive in its first argument.
 
@@ -61,6 +126,55 @@ theorem tensor_smul_right {m n : ℕ}
   apply WithLp.ofLp_injective
   funext x
   simp [tensor, smul_eq_mul, ← mul_assoc, mul_comm]
+
+/-- (Fin (m + n) → Fin 2) ≃ (Fin m → Fin 2) × (Fin n → Fin 2) -/
+def basisIndexEquivProd (m n : ℕ) :
+  (Fin (m + n) → Fin 2) ≃ (Fin m → Fin 2) × (Fin n → Fin 2) :=
+  (Equiv.arrowCongr finSumFinEquiv.symm (Equiv.refl _)).trans
+    (Equiv.sumArrowEquivProdArrow (Fin m) (Fin n) (Fin 2))
+
+/-- inner product of tensor product -/
+theorem inner_tensor {m n : ℕ}
+    (ψ₁ φ₁ : State m) (ψ₂ φ₂ : State n) :
+    inner ℂ (tensor ψ₁ ψ₂) (tensor φ₁ φ₂) =
+      inner ℂ ψ₁ φ₁ * inner ℂ ψ₂ φ₂ := by
+  unfold tensor
+  rw [PiLp.inner_apply]
+  simp only [RCLike.inner_apply, map_mul]
+  rw [Fintype.sum_equiv
+    (basisIndexEquivProd m n)
+    (fun x =>
+      (φ₁.ofLp (fun i => x (Fin.castAdd n i)) *
+        φ₂.ofLp (fun j => x (Fin.natAdd m j))) *
+      ((starRingEnd ℂ) (ψ₁.ofLp (fun i => x (Fin.castAdd n i))) *
+        (starRingEnd ℂ) (ψ₂.ofLp (fun j => x (Fin.natAdd m j)))))
+    (fun y =>
+      (φ₁.ofLp y.1 * φ₂.ofLp y.2) *
+      ((starRingEnd ℂ) (ψ₁.ofLp y.1) *
+        (starRingEnd ℂ) (ψ₂.ofLp y.2)))
+    (by
+      intro x
+      rfl)]
+  rw [PiLp.inner_apply, PiLp.inner_apply]
+  simp only [RCLike.inner_apply]
+  rw [Fintype.sum_prod_type]
+  rw [Finset.sum_mul]
+  simp_rw [Finset.mul_sum]
+  apply Fintype.sum_congr
+  intro x
+  apply Fintype.sum_congr
+  intro y
+  ring
+
+/-- The amplitude of `|a⟩ ⊗ |b⟩` is `1` at the
+basis state `(a, b)` and `0` elsewhere. -/
+theorem tensor_ket_apply (a b : Fin 2) (x : Fin 2 → Fin 2) :
+    (tensor (ket a) (ket b)).ofLp x =
+      if x 0 = a ∧ x 1 = b then 1 else 0 := by
+  by_cases ha : x 0 = a <;> by_cases hb : x 1 = b <;>
+    simp [tensor, ket, ha, hb]
+
+/-! ## Matrix application -/
 
 /-- Applying a sum of matrices to a state vector gives
  the sum of their applications.
@@ -123,6 +237,8 @@ theorem applyMatrix_smul_state {n : ℕ}
   simp only [applyMatrix, WithLp.ofLp_smul,
     Matrix.mulVec_smul, WithLp.toLp_smul]
 
+/-! ## Outer products -/
+
 /-- Applying the outer product `|ψ⟩⟨φ|` to a state `v` yields
 the scalar multiple `⟨φ, v⟩ • ψ`. -/
 theorem Matrix.outer_apply {n : ℕ} (ψ φ v : State n) :
@@ -184,54 +300,7 @@ theorem outer_mul_outer (ψ_1 ψ_2 φ_1 φ_2 : State n) :
               φ_1.ofLp k * (starRingEnd ℂ) (ψ_2.ofLp k))
             (ψ_1.ofLp i * (starRingEnd ℂ) (φ_2.ofLp j))).symm
 
-/-- (Fin (m + n) → Fin 2) ≃ (Fin m → Fin 2) × (Fin n → Fin 2) -/
-def basisIndexEquivProd (m n : ℕ) :
-  (Fin (m + n) → Fin 2) ≃ (Fin m → Fin 2) × (Fin n → Fin 2) :=
-  (Equiv.arrowCongr finSumFinEquiv.symm (Equiv.refl _)).trans
-    (Equiv.sumArrowEquivProdArrow (Fin m) (Fin n) (Fin 2))
-
-variable (n : ℕ)
-
-/-- inner product of tensor product -/
-theorem inner_tensor {m : ℕ}
-    (ψ₁ φ₁ : State m) (ψ₂ φ₂ : State n) :
-    inner ℂ (tensor ψ₁ ψ₂) (tensor φ₁ φ₂) =
-      inner ℂ ψ₁ φ₁ * inner ℂ ψ₂ φ₂ := by
-  unfold tensor
-  rw [PiLp.inner_apply]
-  simp only [RCLike.inner_apply, map_mul]
-  rw [Fintype.sum_equiv
-    (basisIndexEquivProd m n)
-    (fun x =>
-      (φ₁.ofLp (fun i => x (Fin.castAdd n i)) *
-        φ₂.ofLp (fun j => x (Fin.natAdd m j))) *
-      ((starRingEnd ℂ) (ψ₁.ofLp (fun i => x (Fin.castAdd n i))) *
-        (starRingEnd ℂ) (ψ₂.ofLp (fun j => x (Fin.natAdd m j)))))
-    (fun y =>
-      (φ₁.ofLp y.1 * φ₂.ofLp y.2) *
-      ((starRingEnd ℂ) (ψ₁.ofLp y.1) *
-        (starRingEnd ℂ) (ψ₂.ofLp y.2)))
-    (by
-      intro x
-      rfl)]
-  rw [PiLp.inner_apply, PiLp.inner_apply]
-  simp only [RCLike.inner_apply]
-  rw [Fintype.sum_prod_type]
-  rw [Finset.sum_mul]
-  simp_rw [Finset.mul_sum]
-  apply Fintype.sum_congr
-  intro x
-  apply Fintype.sum_congr
-  intro y
-  ring
-
-/-- The amplitude of `|a⟩ ⊗ |b⟩` is `1` at the
-basis state `(a, b)` and `0` elsewhere. -/
-theorem tensor_ket_apply (a b : Fin 2) (x : Fin 2 → Fin 2) :
-    (tensor (ket a) (ket b)).ofLp x =
-      if x 0 = a ∧ x 1 = b then 1 else 0 := by
-  by_cases ha : x 0 = a <;> by_cases hb : x 1 = b <;>
-    simp [tensor, ket, ha, hb]
+/-! ## Completeness of computational bases -/
 
 /-- Every element of `Fin 2` is either `0` or `1`. -/
 lemma fin_two_eq_zero_or_one (x : Fin 2) :

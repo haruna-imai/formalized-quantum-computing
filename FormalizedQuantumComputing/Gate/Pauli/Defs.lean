@@ -5,16 +5,20 @@ Authors: Haruna Imai
 -/
 
 import FormalizedQuantumComputing.StateVector.Defs
+import FormalizedQuantumComputing.StateVector.Basic
 import FormalizedQuantumComputing.Gate.Defs
 
 /-!
-# Pauli matrices
+# Pauli gates
 
-This file defines Pauli matrices for quantum computation.
+This file defines the Pauli X and Z matrices, proves their unitarity,
+and constructs the corresponding single-qubit quantum gates.
 -/
 
 namespace Gate.Pauli
 open StateVector
+
+/-! ## Pauli X gate -/
 
 /-- The X matrix. -/
 def XMatrix :
@@ -51,6 +55,8 @@ def X : QuantumGate 1 := by
   change star XMatrix * XMatrix = 1 ∧
     XMatrix * star XMatrix = 1
   exact ⟨star_mul_XMatrix, XMatrix_mul_star⟩
+
+/-! ## Pauli Z gate -/
 
 /-- The Z matrix. -/
 def ZMatrix :

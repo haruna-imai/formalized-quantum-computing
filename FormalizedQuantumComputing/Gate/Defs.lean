@@ -12,9 +12,10 @@ import FormalizedQuantumComputing.StateVector.Basic
 import Mathlib.LinearAlgebra.UnitaryGroup
 
 /-!
-# quantum gates
+# Quantum gates
 
-This file defines quantum Gates.
+This file defines quantum gates and their application to state vectors, tensor products
+of quantum gates, and the Hadamard and controlled-NOT gates with proofs of unitarity.
 -/
 
 namespace Gate
@@ -22,15 +23,19 @@ open Kronecker
 open StateVector
 open scoped Matrix
 
+/-! ## Quantum gates -/
+
 variable (n : ℕ)
 
--- 量子Gateの定義
+/-- An `n`-qubit quantum gate represented by a unitary matrix. -/
 abbrev QuantumGate := Matrix.unitaryGroup (Fin n → Fin 2) ℂ
 
 /-- Applies a quantum gate to a state vector. -/
 def apply {n : ℕ}
     (U : QuantumGate n) (ψ : StateVector.State n) : StateVector.State n :=
   applyMatrix U ψ
+
+/-! ## Tensor products of quantum gates -/
 
 /-- An equivalence that splits an `(m + n)`-bit string into
 its first `m` bits and last `n` bits.
@@ -46,7 +51,8 @@ def splitBits (m n : ℕ) :
     (Equiv.sumArrowEquivProdArrow
       (Fin m) (Fin n) (Fin 2))
 
-/-- The tensor product Matrix -/
+/-- The Kronecker product of two matrices, reindexed by `splitBits` to the bit-string
+indexing of `(m + n)`-qubit states. -/
 def tensorMatrix {m n : ℕ}
     (U : Matrix (Fin m → Fin 2) (Fin m → Fin 2) ℂ)
     (V : Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ) :
@@ -66,6 +72,8 @@ protected def tensor {m n : ℕ}
   constructor <;>
     simp only [tensorMatrix, Matrix.reindex_apply, Matrix.conjTranspose_submatrix,
       Matrix.submatrix_mul_equiv, hK.1, hK.2, Matrix.submatrix_one_equiv]
+
+/-! ## Hadamard gate -/
 
 /-- The Hadamard (H) matrix. -/
 noncomputable def HMatrix :
@@ -99,7 +107,7 @@ lemma hadamard_coefficient_norm_sq :
   rw [div_mul_div_comm, ← pow_two (↑(Real.sqrt 2) : ℂ), hsqrtC]
   norm_num
 
-/- The Hadamard matrix satisfies `HMatrixᴴ * HMatrix = 1`. --/
+/-- The Hadamard matrix satisfies `HMatrixᴴ * HMatrix = 1`. -/
 theorem star_mul_HMatrix : star HMatrix * HMatrix = 1 := by
   rw [HMatrix]
   rw [star_smul, Matrix.smul_mul, Matrix.mul_smul, smul_smul]
@@ -121,7 +129,7 @@ theorem star_mul_HMatrix : star HMatrix * HMatrix = 1 := by
         module
     _ = 1 := StateVector.computationalBasis_one_qubit_outerproduct_sum
 
-/- The Hadamard matrix satisfies `HMatrix * HMatrixᴴ = 1`. --/
+/-- The Hadamard matrix satisfies `HMatrix * HMatrixᴴ = 1`. -/
 theorem HMatrix_mul_star : HMatrix * star HMatrix = 1 := by
   rw [HMatrix]
   rw [star_smul, Matrix.smul_mul, Matrix.mul_smul, smul_smul]
@@ -143,13 +151,15 @@ theorem HMatrix_mul_star : HMatrix * star HMatrix = 1 := by
         module
     _ = 1 := StateVector.computationalBasis_one_qubit_outerproduct_sum
 
-/-  The Hadamard (H) gate as a unitary operator on one qubit. --/
+/-- The Hadamard (H) gate as a unitary operator on one qubit. -/
 noncomputable def H : QuantumGate 1 := by
   refine ⟨HMatrix, ?_⟩
   unfold QuantumGate Matrix.unitaryGroup unitary
   change star HMatrix * HMatrix = 1 ∧
     HMatrix * star HMatrix = 1
   exact ⟨star_mul_HMatrix, HMatrix_mul_star⟩
+
+/-! ## Controlled-NOT gate -/
 
 /-- The controlled-NOT (CNOT) matrix. -/
 def CNOTMatrix : Matrix (Fin 2 → Fin 2) (Fin 2 → Fin 2) ℂ :=
@@ -158,7 +168,7 @@ def CNOTMatrix : Matrix (Fin 2 → Fin 2) (Fin 2 → Fin 2) ℂ :=
   outer (tensor ket1 ket1) (tensor ket1 ket0) +
   outer (tensor ket1 ket0) (tensor ket1 ket1)
 
-/- The CNOT matrix satisfies `CNOTMatrixᴴ * CNOTMatrix = 1`. --/
+/-- The CNOT matrix satisfies `CNOTMatrixᴴ * CNOTMatrix = 1`. -/
 theorem star_mul_CNOTMatrix : star CNOTMatrix * CNOTMatrix = 1 := by
   rw [CNOTMatrix]
   simp only [star_add]
@@ -170,7 +180,7 @@ theorem star_mul_CNOTMatrix : star CNOTMatrix * CNOTMatrix = 1 := by
   simp only [Nat.reduceAdd, mul_one, one_smul, mul_zero, zero_smul, add_zero, zero_add]
   rw [computationalBasis_two_qubit_outerproduct_sum]
 
-/- The CNOT matrix satisfies `CNOTMatrix * CNOTMatrixᴴ = 1`. --/
+/-- The CNOT matrix satisfies `CNOTMatrix * CNOTMatrixᴴ = 1`. -/
 theorem CNOTMatrix_mul_star : CNOTMatrix * star CNOTMatrix = 1 := by
   rw [CNOTMatrix]
   simp only [star_add]
@@ -183,7 +193,7 @@ theorem CNOTMatrix_mul_star : CNOTMatrix * star CNOTMatrix = 1 := by
   simpa [add_comm, add_left_comm, add_assoc] using
     computationalBasis_two_qubit_outerproduct_sum
 
-/-  The controlled-NOT (CNOT) gate as a unitary operator on two qubits. --/
+/-- The controlled-NOT (CNOT) gate as a unitary operator on two qubits. -/
 def CNOT : QuantumGate 2 := by
   refine ⟨CNOTMatrix, ?_⟩
   unfold QuantumGate Matrix.unitaryGroup unitary

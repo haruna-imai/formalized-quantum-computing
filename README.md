@@ -1,37 +1,35 @@
 # Formalized Quantum Computing
+
 [日本語版](README_ja.md)
 
-A Lean 4 library for formalizing basic results in quantum computing.
+An experimental Lean 4 library for formalizing foundational concepts and results in quantum computing.
 
-This project currently focuses on elementary quantum states and quantum gates,
-with the goal of exploring the formalization of quantum computing in Lean.
+The project develops reusable definitions and theorems for quantum states, unitary gates, and basic quantum circuits.
 
 ## Status
 
-This project is under development and is being created as part of the author's
-study of formalizing quantum computing in Lean.
+This library is under active development. It provides a small but structured foundation for formalizing quantum computing, rather than a comprehensive quantum computing framework.
 
-The library is not yet mature, and its definitions and APIs may change.
-Please use it with this in mind.
+Its scope is currently limited, and definitions and APIs may change as the project evolves.
 
 ## Contents
 
 The library currently includes:
 
-- Basic quantum state vectors
-- Pauli `X` and `Z` gates
-- Hadamard gate
-- CNOT gate
-- Basic identities for quantum gates, such as `H² = I` and `CNOT² = I`
-- Bell-state calculations
-- Quantum gates are represented as unitary matrices and preserve the norm of state vectors
+- State vectors for `n`-qubit systems, normalized states, and basic single-qubit states
+- Tensor products of state vectors, outer products, and the action of matrices on states
+- Inner-product properties of computational basis states and basic properties of tensor products
+- Quantum gates represented by unitary matrices, including the Pauli `X` and `Z`, Hadamard, and CNOT gates
+- Tensor products of quantum gates and their action on tensor-product states
+- Gate identities, including `X² = I`, `Z² = I`, `H² = I`, and `CNOT² = I`
+- Preservation of inner products and norms under unitary quantum gates
+- A proof of Bell-state preparation using Hadamard and CNOT gates
 
 ## Requirements
 
 This project uses Lean 4 and Mathlib.
 
-The Lean toolchain is specified in `lean-toolchain`, and the versions of
-dependencies such as Mathlib are recorded in `lake-manifest.json`.
+The Lean toolchain is specified in `lean-toolchain`, and dependency versions, including Mathlib, are recorded in `lake-manifest.json`.
 
 ## Build
 
