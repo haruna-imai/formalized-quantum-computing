@@ -4,123 +4,71 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Haruna Imai
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Notation
 import Mathlib.Analysis.Complex.Basic
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.LinearAlgebra.Matrix.Reindex
 import Mathlib.Analysis.InnerProductSpace.PiL2
 
 /-!
 # State vectors
 
-This file provides basic definitions and properties of state vectors for quantum computation.
+This file defines state vectors and normalized states, single-qubit states, and operations
+on state vectors for quantum computation.
 -/
 
 namespace StateVector
 open Kronecker
 open scoped Matrix
+open scoped ComplexConjugate
 
--- 正規化を仮定しない状態ベクトル
+/-! ## State vectors -/
+
+/-- An `n`-qubit state vector without a normalization assumption. -/
 abbrev State (n : ℕ) :=
   EuclideanSpace ℂ (Fin n → Fin 2)
 
--- 正規化済みの状態ベクトル
+/-- An `n`-qubit state vector with unit norm. -/
 structure NormalizedState (n : ℕ) where
   vec : State n
   normalized : ‖vec‖ = 1
 
--- |0> を定義
-def ket0 : Matrix (Fin 2) (Fin 1) ℂ := !![1 ; 0]
+/-! ## Single-qubit states -/
 
--- |1> を定義
-def ket1 : Matrix (Fin 2) (Fin 1) ℂ := !![0 ; 1]
+/-- The computational basis state `|i⟩`. -/
+def ket (i : Fin 2) : State 1 :=
+  WithLp.toLp 2 (fun x =>
+    if x 0 = i then 1 else 0)
 
--- <0|0>
-theorem ket0star_mul_ket0 : ket0ᴴ * ket0 = 1 :=by
-  ext i j
-  rw [Matrix.mul_apply]
-  rw [ket0]
-  fin_cases i, j
-  simp
+/-- The computational basis state `|0⟩`. -/
+def ket0 : State 1 := ket 0
 
--- <0|1>
-theorem ket0star_mul_ket1 : ket0ᴴ * ket1 = 0 :=by
-  ext i j
-  rw [Matrix.mul_apply]
-  rw [ket0, ket1]
-  fin_cases i, j
-  simp
+/-- The computational basis state `|1⟩`. -/
+def ket1 : State 1 := ket 1
 
--- <1|0>
-theorem ket1star_mul_ket0 : ket1ᴴ * ket0 = 0 :=by
-  ext i j
-  rw [Matrix.mul_apply]
-  rw [ket0, ket1]
-  fin_cases i, j
-  simp
+/-- `|+⟩` -/
+noncomputable def ketplus : State 1 :=
+  (1 / √2 : ℂ) • ket0 + (1 / √2 : ℂ) • ket1
 
--- <1|1>
-theorem ket1star_mul_ket1 : ket1ᴴ * ket1 = 1 :=by
-    ext i j
-    rw [Matrix.mul_apply]
-    rw [ket1]
-    fin_cases i, j
-    simp
+/-- `|-⟩` -/
+noncomputable def ketminus : State 1 :=
+  (1 / √2 : ℂ) • ket0 - (1 / √2 : ℂ) • ket1
 
--- |+> を定義
-noncomputable def ketplus : Matrix (Fin 2) (Fin 1) ℂ := !![(1/√2 : ℂ) ; (1/√2 : ℂ)]
+/-! ## Operations on state vectors -/
 
--- |-> を定義
-noncomputable def ketminus : Matrix (Fin 2) (Fin 1) ℂ := !![(1/√2 : ℂ) ; -(1/√2 : ℂ)]
+/-- The tensor product of `ψ` and `φ` -/
+def tensor {m n : ℕ} (ψ : State m) (φ : State n) : State (m + n) :=
+  WithLp.toLp 2 (fun x =>
+    ψ.ofLp (fun i : Fin m => x (Fin.castAdd n i)) *
+    φ.ofLp (fun j : Fin n => x (Fin.natAdd m j)))
 
-theorem ketplus_eq : ketplus = (1 / √2 : ℂ) • ket0 + (1 / √2 : ℂ) • ket1 := by
-  ext i j
-  fin_cases i <;>
-  fin_cases j <;>
-  simp [ketplus, ket0, ket1]
+/-- The outer product of `ψ_1` and `ψ_2` -/
+def outer {n : ℕ} (ψ_1 ψ_2 : State n) :
+    Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ :=
+  fun i j =>
+    ψ_1.ofLp i * conj (ψ_2.ofLp j)
+
+/-- Applies the matrix `A` to the state `ψ`. -/
+def applyMatrix {n : ℕ}
+    (A : Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ)
+    (ψ : State n) : State n :=
+  WithLp.toLp 2 (A *ᵥ ψ.ofLp)
 
 end StateVector
-
-namespace Matrix
-open Kronecker
-open StateVector
-
-variable {m n p q r s : Type*}
-
--- (M * Mᴴ) * (N * Nᴴ) = M * (Mᴴ * N) * Nᴴ
-theorem outerproduct_mul_outerproduct
-  [Fintype m] [Fintype n] {L M N R : Matrix m n ℂ} :
-  (L * Mᴴ) * (N * Rᴴ) = L * (Mᴴ * N) * Rᴴ := by
-    calc
-      (L * Mᴴ) * (N * Rᴴ) = L * (Mᴴ * (N * Rᴴ)) := Matrix.mul_assoc L Mᴴ (N * Rᴴ)
-      _ = L * ((Mᴴ * N) * Rᴴ) :=by rw [← Matrix.mul_assoc Mᴴ N Rᴴ]
-      _ = L * (Mᴴ * N) * Rᴴ :=by rw [← Matrix.mul_assoc L (Mᴴ * N) Rᴴ]
-
--- (|a> ⊗ |b>)ᴴ * (|c> ⊗ |d>) = (<a|c>) ⊗ (<b|d>)
-theorem kronecker_conjTranspose_mul_kronecker
- [Fintype m] [Fintype p]
- {L : Matrix m n ℂ} {M : Matrix p q ℂ}
- {N : Matrix m r ℂ} {R : Matrix p s ℂ} :
- (L ⊗ₖ M)ᴴ * (N ⊗ₖ R) = (Lᴴ * N) ⊗ₖ (Mᴴ * R) := by
-    rw [Matrix.conjTranspose_kronecker]
-    rw [Matrix.mul_kronecker_mul]
-
--- ∑_i|eᵢ><eᵢ| = I₄
--- TODO: 4次元のベクトル空間の標準基底(|00>, |01>, |10>, |11>)を用いて証明を行う方針に変更する。現状は愚直に行列の等式を計算
-theorem computationalBasis_two_qubit_outerproduct_sum :
-  ket0 ⊗ₖ ket0 * (ket0 ⊗ₖ ket0)ᴴ +
-  ket0 ⊗ₖ ket1 * (ket0 ⊗ₖ ket1)ᴴ +
-  ket1 ⊗ₖ ket0 * (ket1 ⊗ₖ ket0)ᴴ +
-  ket1 ⊗ₖ ket1 * (ket1 ⊗ₖ ket1)ᴴ = 1 :=by
-    simp_rw [Matrix.conjTranspose_kronecker]
-    simp_rw [← Matrix.mul_kronecker_mul]
-    ext i j
-    rcases i with ⟨i₁, i₂⟩
-    rcases j with ⟨j₁, j₂⟩
-    fin_cases i₁ <;>
-    fin_cases i₂ <;>
-    fin_cases j₁ <;>
-    fin_cases j₂ <;>
-    simp [ket0, ket1, Matrix.vecMul]
-
-end Matrix
