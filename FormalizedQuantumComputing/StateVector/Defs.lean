@@ -4,10 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Haruna Imai
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Notation
 import Mathlib.Analysis.Complex.Basic
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.LinearAlgebra.Matrix.Reindex
 import Mathlib.Analysis.InnerProductSpace.PiL2
 
 /-!
@@ -63,12 +60,13 @@ def ket1 : State 1 := ket 1
 theorem inner_ket_self (i : Fin 2) : inner ℂ (ket i) (ket i) = 1 := by
   unfold ket
   rw [PiLp.inner_apply]
-  simp
+  simp only [Fin.isValue, inner_self_eq_norm_sq_to_K, Complex.coe_algebraMap]
   rw [Fintype.sum_eq_single (a := fun _ : Fin 1 => (i : Fin 2))]
   · simp
-  ·
-    intro x hx
-    simp
+  · intro x hx
+    simp only [Fin.isValue, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true,
+      pow_eq_zero_iff, Complex.ofReal_eq_zero, norm_eq_zero, ite_eq_right_iff,
+      one_ne_zero, imp_false]
     intro h
     apply hx
     funext i
@@ -80,9 +78,11 @@ theorem inner_ket_of_ne {i j : Fin 2} (h : i ≠ j) :
     inner ℂ (ket i) (ket j) = 0 := by
     unfold ket
     rw [PiLp.inner_apply]
-    simp
+    simp only [Fin.isValue, RCLike.inner_apply, MonoidWithZeroHom.map_ite_one_zero, mul_ite,
+      mul_one, mul_zero]
     apply Finset.sum_eq_zero
-    simp
+    simp only [Finset.mem_univ, Fin.isValue, ite_eq_right_iff, one_ne_zero,
+      imp_false, forall_const]
     intro x x0i x0j
     rw [x0i] at x0j
     exact h x0j
@@ -91,12 +91,10 @@ theorem inner_ket_of_ne {i j : Fin 2} (h : i ≠ j) :
 theorem inner_ket (i j : Fin 2) :
     inner ℂ (ket i) (ket j) = if i = j then 1 else 0 := by
   by_cases h : i = j
-  ·
-    subst i
+  · subst i
     rw [ite_eq_left rfl]
     exact inner_ket_self j
-  ·
-    rw [ite_eq_right h]
+  · rw [ite_eq_right h]
     exact inner_ket_of_ne h
 
 /-- `⟨0|0⟩ = 1`. -/
@@ -128,29 +126,3 @@ noncomputable def ketminus : State 1 :=
   (1 / √2 : ℂ) • ket0 - (1 / √2 : ℂ) • ket1
 
 end StateVector
-
-namespace Matrix
-open Kronecker
-open StateVector
-
-variable {m n p q r s : Type*}
-
--- (M * Mᴴ) * (N * Nᴴ) = M * (Mᴴ * N) * Nᴴ
-theorem outerproduct_mul_outerproduct
-  [Fintype m] [Fintype n] {L M N R : Matrix m n ℂ} :
-  (L * Mᴴ) * (N * Rᴴ) = L * (Mᴴ * N) * Rᴴ := by
-    calc
-      (L * Mᴴ) * (N * Rᴴ) = L * (Mᴴ * (N * Rᴴ)) := Matrix.mul_assoc L Mᴴ (N * Rᴴ)
-      _ = L * ((Mᴴ * N) * Rᴴ) :=by rw [← Matrix.mul_assoc Mᴴ N Rᴴ]
-      _ = L * (Mᴴ * N) * Rᴴ :=by rw [← Matrix.mul_assoc L (Mᴴ * N) Rᴴ]
-
--- (|a> ⊗ |b>)ᴴ * (|c> ⊗ |d>) = (<a|c>) ⊗ (<b|d>)
-theorem kronecker_conjTranspose_mul_kronecker
- [Fintype m] [Fintype p]
- {L : Matrix m n ℂ} {M : Matrix p q ℂ}
- {N : Matrix m r ℂ} {R : Matrix p s ℂ} :
- (L ⊗ₖ M)ᴴ * (N ⊗ₖ R) = (Lᴴ * N) ⊗ₖ (Mᴴ * R) := by
-    rw [Matrix.conjTranspose_kronecker]
-    rw [Matrix.mul_kronecker_mul]
-
-end Matrix

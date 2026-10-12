@@ -29,7 +29,7 @@ theorem star_mul_XMatrix : star XMatrix * XMatrix = 1 := by
   simp_rw [StateVector.star_outer]
   simp_rw [StateVector.outer_mul_outer]
   simp_rw [inner_ket0_ket0, inner_ket0_ket1, inner_ket1_ket0, inner_ket1_ket1]
-  simp
+  simp only [one_smul, zero_smul, add_zero, zero_add]
   exact StateVector.computationalBasis_one_qubit_outerproduct_sum
 
 /-- The X matrix satisfies `XMatrix * XMatrixᴴ = 1`. -/
@@ -65,7 +65,7 @@ theorem star_mul_ZMatrix : star ZMatrix * ZMatrix = 1 := by
   simp_rw [StateVector.star_outer]
   simp_rw [StateVector.outer_mul_outer]
   simp_rw [inner_ket0_ket0, inner_ket0_ket1, inner_ket1_ket0, inner_ket1_ket1]
-  simp
+  simp only [one_smul, zero_smul, sub_zero, zero_sub, sub_neg_eq_add]
   exact StateVector.computationalBasis_one_qubit_outerproduct_sum
 
 /-- The Z matrix satisfies `ZMatrix * ZMatrixᴴ = 1`. -/
@@ -76,7 +76,7 @@ theorem ZMatrix_mul_star : ZMatrix * star ZMatrix = 1 := by
   simp_rw [StateVector.star_outer]
   simp_rw [StateVector.outer_mul_outer]
   simp_rw [inner_ket0_ket0, inner_ket0_ket1, inner_ket1_ket0, inner_ket1_ket1]
-  simp
+  simp only [one_smul, zero_smul, sub_zero, zero_sub, sub_neg_eq_add]
   exact StateVector.computationalBasis_one_qubit_outerproduct_sum
 
 /-- The Pauli Z gate as a unitary operator on one qubit. -/

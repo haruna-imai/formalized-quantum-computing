@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Haruna Imai
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Notation
 import Mathlib.Analysis.Complex.Basic
 import Mathlib.LinearAlgebra.Matrix.Kronecker
 import Mathlib.LinearAlgebra.Matrix.Reindex
@@ -32,6 +31,41 @@ abbrev QuantumGate := Matrix.unitaryGroup (Fin n → Fin 2) ℂ
 def apply {n : ℕ}
     (U : QuantumGate n) (ψ : StateVector.State n) : StateVector.State n :=
   applyMatrix U ψ
+
+/-- An equivalence that splits an `(m + n)`-bit string into
+its first `m` bits and last `n` bits.
+
+This is used to reindex the Kronecker product of quantum gates
+to the bit-string indexing of `(m + n)`-qubit states. -/
+def splitBits (m n : ℕ) :
+    (Fin (m + n) → Fin 2) ≃
+      (Fin m → Fin 2) × (Fin n → Fin 2) :=
+  (Equiv.arrowCongr
+    (finSumFinEquiv (m := m) (n := n)).symm
+    (Equiv.refl (Fin 2))).trans
+    (Equiv.sumArrowEquivProdArrow
+      (Fin m) (Fin n) (Fin 2))
+
+/-- The tensor product Matrix -/
+def tensorMatrix {m n : ℕ}
+    (U : Matrix (Fin m → Fin 2) (Fin m → Fin 2) ℂ)
+    (V : Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ) :
+    Matrix (Fin (m + n) → Fin 2)
+           (Fin (m + n) → Fin 2) ℂ :=
+  Matrix.reindex (splitBits m n).symm
+    (splitBits m n).symm (U ⊗ₖ V)
+
+/-- The tensor product of two quantum gates. -/
+protected def tensor {m n : ℕ}
+    (U : QuantumGate m) (V : QuantumGate n) :
+    QuantumGate (m + n) := by
+  refine ⟨tensorMatrix U V, ?_⟩
+  unfold QuantumGate Matrix.unitaryGroup
+  have hK := Matrix.kronecker_mem_unitary U.property V.property
+  simp only [Unitary.mem_iff, Matrix.star_eq_conjTranspose] at hK ⊢
+  constructor <;>
+    simp only [tensorMatrix, Matrix.reindex_apply, Matrix.conjTranspose_submatrix,
+      Matrix.submatrix_mul_equiv, hK.1, hK.2, Matrix.submatrix_one_equiv]
 
 /-- The Hadamard (H) matrix. -/
 noncomputable def HMatrix :
@@ -75,7 +109,8 @@ theorem star_mul_HMatrix : star HMatrix * HMatrix = 1 := by
   simp_rw [StateVector.star_outer]
   simp_rw [StateVector.outer_mul_outer]
   simp_rw [inner_ket0_ket0, inner_ket0_ket1, inner_ket1_ket0, inner_ket1_ket1]
-  simp
+  simp only [one_div, one_smul, zero_smul, add_zero, sub_zero, zero_add,
+    add_add_sub_cancel]
   calc
     (2⁻¹ : ℂ) •
      (outer ket0 ket0 + outer ket0 ket0 +
@@ -96,7 +131,7 @@ theorem HMatrix_mul_star : HMatrix * star HMatrix = 1 := by
   simp_rw [StateVector.star_outer]
   simp_rw [StateVector.outer_mul_outer]
   simp_rw [inner_ket0_ket0, inner_ket0_ket1, inner_ket1_ket0, inner_ket1_ket1]
-  simp
+  simp only [one_div, one_smul, zero_smul, add_zero, sub_zero, zero_add]
   calc
     (2⁻¹ : ℂ) •
      (outer ket0 ket0 + outer ket0 ket1 +
@@ -132,7 +167,7 @@ theorem star_mul_CNOTMatrix : star CNOTMatrix * CNOTMatrix = 1 := by
   simp_rw [StateVector.outer_mul_outer]
   simp_rw [inner_tensor]
   simp_rw [inner_ket0_ket0, inner_ket0_ket1, inner_ket1_ket0, inner_ket1_ket1]
-  simp
+  simp only [Nat.reduceAdd, mul_one, one_smul, mul_zero, zero_smul, add_zero, zero_add]
   rw [computationalBasis_two_qubit_outerproduct_sum]
 
 /- The CNOT matrix satisfies `CNOTMatrix * CNOTMatrixᴴ = 1`. --/
